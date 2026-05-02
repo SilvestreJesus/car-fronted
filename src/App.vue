@@ -1,11 +1,11 @@
 <script setup>
 // Borra la línea de HelloWorld e importa solo lo que necesitas
 import Login from './components/Login.vue';
+import Registro from './components/Registro.vue';
 </script>
 
 <template>
-  <!-- Solo renderiza tu componente de Login por ahora -->
-  <Login />
+  <router-view />
 </template>
 
 <style scoped>

@@ -1,23 +1,63 @@
 <template>
-  <div class="bg-zinc-900 min-h-screen flex flex-col items-center p-6 text-white">
-    <img src="/logo-carro.png" class="w-24 h-24 rounded-full border-2 border-white mb-4">
-    <h1 class="text-3xl font-bold italic text-green-100 mb-6">Registro</h1>
-
-    <div class="bg-zinc-400 p-6 rounded-3xl w-full max-w-sm text-black">
-      <label class="font-bold">Nombre del equipo "Carro"</label>
-      <input v-model="form.nombre" class="w-full bg-black text-white rounded-full p-2 mb-4">
-
-      <label class="font-bold">Integrantes</label>
-      <textarea v-model="form.integrantes" class="w-full bg-black text-white rounded-2xl p-2 mb-4" placeholder="Nombre 1, Nombre 2..."></textarea>
-
-      <label class="font-bold">Correo electrónico</label>
-      <input v-model="form.email" type="email" class="w-full bg-black text-white rounded-full p-2 mb-4">
-
-      <label class="font-bold">Contraseña</label>
-      <input v-model="form.password" type="password" class="w-full bg-black text-white rounded-full p-2 mb-4">
+  <div class="min-h-screen bg-[#050505] bg-[radial-gradient(circle_at_center,_#0a192f_0%,_#050505_100%)] flex flex-col items-center justify-center p-6 font-app antialiased">
+    
+    <div class="w-full max-w-md bg-[#0d1117] rounded-[2.5rem] p-10 shadow-2xl border border-white/5">
       
-      <button @click="enviarRegistro" class="bg-zinc-700 text-white w-full py-3 rounded-full mt-4 font-bold">
-        Registrar
+      <!-- Logo centrado -->
+      <div class="flex justify-center mb-8">
+        <img src="../assets/logo.png" alt="Logo" class="w-24 h-auto object-contain filter brightness-125" />
+      </div>
+
+      <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold text-white tracking-tight animate-fade-in">Registro de Equipo</h1>
+        <p class="text-slate-400 text-sm mt-2 font-normal">Configura el acceso para tu proyecto robótico</p>
+      </div>
+
+      <div class="space-y-5">
+        <!-- Nombre del Carro -->
+        <div class="group relative text-left">
+          <label class="text-[11px] font-bold text-[#3b82f6] uppercase mb-2 block tracking-wider">Nombre del equipo "Carro"</label>
+          <input v-model="form.nombre" type="text" placeholder="Ej. Xolo-Bot" 
+                 class="w-full bg-[#161b22] border border-slate-800 rounded-xl py-3 px-4 outline-none focus:border-[#3b82f6] transition-all text-white">
+        </div>
+
+        <!-- Integrantes -->
+        <div class="group relative text-left">
+          <label class="text-[11px] font-bold text-[#3b82f6] uppercase mb-2 block tracking-wider">Integrantes</label>
+          <textarea v-model="form.integrantes" placeholder="Nombre 1, Nombre 2..." rows="2"
+                    class="w-full bg-[#161b22] border border-slate-800 rounded-xl py-3 px-4 outline-none focus:border-[#3b82f6] transition-all text-white resize-none"></textarea>
+        </div>
+
+        <!-- Correo -->
+        <div class="group relative text-left">
+          <label class="text-[11px] font-bold text-[#3b82f6] uppercase mb-2 block tracking-wider">Correo Electrónico</label>
+          <input v-model="form.email" type="email" placeholder="correo@ejemplo.com" 
+                 class="w-full bg-[#161b22] border border-slate-800 rounded-xl py-3 px-4 outline-none focus:border-[#3b82f6] transition-all text-white">
+        </div>
+
+        <!-- Contraseña -->
+        <div class="group relative text-left">
+          <label class="text-[11px] font-bold text-[#3b82f6] uppercase mb-2 block tracking-wider">Contraseña</label>
+          <input v-model="form.password" type="password" placeholder="••••••••" 
+                 class="w-full bg-[#161b22] border border-slate-800 rounded-xl py-3 px-4 outline-none focus:border-[#3b82f6] transition-all text-white">
+        </div>
+      </div>
+
+      <!-- Botón REGISTRAR con animación -->
+      <button @click="enviarRegistro" 
+              class="relative mt-8 w-full overflow-hidden bg-[#3b82f6] text-white font-bold py-4 rounded-xl shadow-lg transition-all duration-300
+                     hover:bg-white hover:text-[#0d1117] hover:-translate-y-1 hover:shadow-[0_10px_25px_rgba(255,255,255,0.15)]
+                     active:scale-[0.95] flex items-center justify-center gap-2 group text-base uppercase">
+        
+        <span class="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-shimmer"></span>
+        
+        <span class="relative z-10">Finalizar Registro</span>
+      </button>
+
+      <!-- Volver al Login -->
+      <button @click="router.push('/')" 
+              class="mt-6 w-full py-2 text-slate-500 font-medium hover:text-slate-300 transition-all text-xs uppercase tracking-widest">
+        ¿Ya tienes cuenta? Inicia sesión
       </button>
     </div>
   </div>
@@ -26,12 +66,29 @@
 <script setup>
 import { ref } from 'vue';
 import axios from 'axios';
+import { useRouter } from 'vue-router';
 
+const router = useRouter();
 const form = ref({ nombre: '', integrantes: '', email: '', password: '' });
 
 const enviarRegistro = async () => {
-  const res = await axios.post('http://127.0.0.1:8000/api/registrar', form.value);
-  alert("Tu Token es: " + res.data.token);
-  // Redirigir al login o dashboard
+  try {
+    const res = await axios.post('http://127.0.0.1:8000/api/registrar', form.value);
+    alert("Registro exitoso. Tu Token de seguridad es: " + res.data.token);
+    router.push('/'); 
+  } catch (error) {
+    alert("Error al registrar el equipo");
+  }
 };
 </script>
+
+<style scoped>
+.font-app, input, textarea, button, label {
+  font-family: 'Inter', -apple-system, system-ui, sans-serif !important;
+}
+
+@keyframes shimmer { 100% { transform: translateX(100%); } }
+.group-hover\:animate-shimmer { animation: shimmer 1.5s infinite; }
+.animate-fade-in { animation: fadeIn 0.8s ease-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+</style>

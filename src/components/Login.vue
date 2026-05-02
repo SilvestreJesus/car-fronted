@@ -71,6 +71,16 @@
   </div>
 </template>
 
+
+<script setup>
+import { useRouter } from 'vue-router';
+const router = useRouter();
+
+const handleLogin = () => {
+  // Tu lógica de acceso
+};
+</script>
+
 <style scoped>
 /* Forzamos la fuente estándar de aplicaciones a TODO el componente */
 .font-app, 
