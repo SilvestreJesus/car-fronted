@@ -9,14 +9,14 @@
       </div>
 
       <div class="text-center mb-8">
-        <h1 class="text-3xl font-bold text-white tracking-tight animate-fade-in">Registro de Equipo</h1>
+        <h1 class="text-3xl font-bold text-white tracking-tight animate-fade-in">Registro</h1>
         <p class="text-slate-400 text-sm mt-2 font-normal">Configura el acceso para tu proyecto robótico</p>
       </div>
 
       <div class="space-y-5">
         <!-- Nombre del Carro -->
         <div class="group relative text-left">
-          <label class="text-[11px] font-bold text-[#3b82f6] uppercase mb-2 block tracking-wider">Nombre del equipo "Carro"</label>
+          <label class="text-[11px] font-bold text-[#3b82f6] uppercase mb-2 block tracking-wider">Nombre del equipo "Automóvil"</label>
           <input v-model="form.nombre" type="text" placeholder="Ej. Xolo-Bot" 
                  class="w-full bg-[#161b22] border border-slate-800 rounded-xl py-3 px-4 outline-none focus:border-[#3b82f6] transition-all text-white">
         </div>
@@ -41,11 +41,20 @@
           <input v-model="form.password" type="password" placeholder="••••••••" 
                  class="w-full bg-[#161b22] border border-slate-800 rounded-xl py-3 px-4 outline-none focus:border-[#3b82f6] transition-all text-white">
         </div>
+
+        <!-- Confirmar Contraseña -->
+        <div class="group relative text-left">
+          <label class="text-[11px] font-bold text-[#3b82f6] uppercase mb-2 block tracking-wider">Confirmar Contraseña</label>
+          <input v-model="form.confirmPassword" type="password" placeholder="••••••••" 
+                 class="w-full bg-[#161b22] border border-slate-800 rounded-xl py-3 px-4 outline-none focus:border-[#3b82f6] transition-all text-white">
+          <p v-if="form.password !== form.confirmPassword && form.confirmPassword" class="text-red-500 text-[10px] mt-1 font-medium italic">Las contraseñas no coinciden</p>
+        </div>
       </div>
 
-      <!-- Botón REGISTRAR con animación -->
+      <!-- Botón REGISTRAR -->
       <button @click="enviarRegistro" 
-              class="relative mt-8 w-full overflow-hidden bg-[#3b82f6] text-white font-bold py-4 rounded-xl shadow-lg transition-all duration-300
+              :disabled="form.password !== form.confirmPassword || !form.password"
+              class="relative mt-8 w-full overflow-hidden bg-[#3b82f6] disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-4 rounded-xl shadow-lg transition-all duration-300
                      hover:bg-white hover:text-[#0d1117] hover:-translate-y-1 hover:shadow-[0_10px_25px_rgba(255,255,255,0.15)]
                      active:scale-[0.95] flex items-center justify-center gap-2 group text-base uppercase">
         
@@ -69,11 +78,27 @@ import axios from 'axios';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
-const form = ref({ nombre: '', integrantes: '', email: '', password: '' });
+const form = ref({ 
+  nombre: '', 
+  integrantes: '', 
+  email: '', 
+  password: '', 
+  confirmPassword: '' 
+});
 
 const enviarRegistro = async () => {
+  if (form.value.password !== form.value.confirmPassword) {
+    alert("Las contraseñas deben ser iguales.");
+    return;
+  }
+
   try {
-    const res = await axios.post('http://127.0.0.1:8000/api/registrar', form.value);
+    const res = await axios.post('http://127.0.0.1:8000/api/registrar', {
+      nombre: form.value.nombre,
+      integrantes: form.value.integrantes,
+      email: form.value.email,
+      password: form.value.password
+    });
     alert("Registro exitoso. Tu Token de seguridad es: " + res.data.token);
     router.push('/'); 
   } catch (error) {
