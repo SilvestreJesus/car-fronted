@@ -18,7 +18,7 @@
         <!-- Nombre del Carro -->
         <div class="group relative text-left">
           <label class="text-[11px] font-bold text-[#3b82f6] uppercase mb-2 block tracking-wider">Nombre del equipo "Automóvil"</label>
-          <input v-model="form.nombre" type="text" placeholder="Ej. Xolo-Bot" 
+          <input v-model="form.nombre" type="text" placeholder="Ej. Turbo-Bot" 
                  class="w-full bg-[#161b22] border border-slate-800 rounded-xl py-3 px-4 outline-none focus:border-[#3b82f6] transition-all text-white">
         </div>
 
