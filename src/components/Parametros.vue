@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-[#050505] bg-[radial-gradient(circle_at_center,_#0a192f_0%,_#050505_100%)] flex flex-col items-center justify-center p-6 font-app antialiased text-white">
     
-    <!-- Botón Cerrar Sesión (Esquina superior) -->
+    <!-- Botón Cerrar Sesión -->
     <div class="absolute top-6 right-6">
       <button @click="handleLogout" class="flex items-center gap-2 text-slate-400 hover:text-white transition-colors uppercase text-[10px] font-bold tracking-widest">
         <span>Cerrar Sesión</span>
@@ -22,56 +22,54 @@
       </div>
     </div>
 
-    <!-- Caja de Parámetros (Estilo Registro) -->
+    <!-- Caja de Parámetros -->
     <div class="w-full max-w-md bg-[#0d1117] rounded-[2.5rem] p-10 shadow-2xl border border-white/5 relative overflow-hidden">
-      <!-- Brillo decorativo superior -->
       <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#3b82f6] to-transparent opacity-50"></div>
       
       <h3 class="text-center font-bold text-lg mb-8 uppercase tracking-widest text-slate-400">Configuración Técnica</h3>
       
       <div class="grid grid-cols-2 gap-6">
-        <!-- Detectar -->
+        <!-- Detectar (Entero > 0) -->
         <div class="group">
           <label class="text-[10px] font-bold text-[#3b82f6] uppercase mb-2 block tracking-wider">Detección</label>
           <div class="relative">
-            <input v-model="form.distancia_detectar" type="number" 
+            <input v-model.number="form.distancia_detectar" type="number" min="1"
                    class="w-full bg-[#161b22] border border-slate-800 rounded-xl py-3 px-4 outline-none focus:border-[#3b82f6] transition-all text-white font-bold pr-12">
             <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-[10px] uppercase">Cm</span>
           </div>
         </div>
 
-        <!-- Detenerse -->
+        <!-- Detenerse (Entero > 0) -->
         <div class="group">
           <label class="text-[10px] font-bold text-[#3b82f6] uppercase mb-2 block tracking-wider">Frenado</label>
           <div class="relative">
-            <input v-model="form.distancia_detenerse" type="number" 
+            <input v-model.number="form.distancia_detenerse" type="number" min="1"
                    class="w-full bg-[#161b22] border border-slate-800 rounded-xl py-3 px-4 outline-none focus:border-[#3b82f6] transition-all text-white font-bold pr-12">
             <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-[10px] uppercase">Cm</span>
           </div>
         </div>
 
-        <!-- Velocidad -->
+        <!-- Velocidad (Ahora como entero, ej: 1 a 100) -->
         <div class="group">
           <label class="text-[10px] font-bold text-[#3b82f6] uppercase mb-2 block tracking-wider">Velocidad</label>
           <div class="relative">
-            <input v-model="form.velocidad_segura" type="number" step="0.1"
+            <input v-model.number="form.velocidad_segura" type="number" min="1"
                    class="w-full bg-[#161b22] border border-slate-800 rounded-xl py-3 px-4 outline-none focus:border-[#3b82f6] transition-all text-white font-bold pr-12">
             <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-[10px] uppercase">%</span>
           </div>
         </div>
 
-        <!-- Tiempo de Respuesta -->
+        <!-- Tiempo de Respuesta (Entero > 0) -->
         <div class="group">
           <label class="text-[10px] font-bold text-[#3b82f6] uppercase mb-2 block tracking-wider">Respuesta</label>
           <div class="relative">
-            <input v-model="form.tiempo_respuesta" type="number" 
+            <input v-model.number="form.tiempo_respuesta" type="number" min="1"
                    class="w-full bg-[#161b22] border border-slate-800 rounded-xl py-3 px-4 outline-none focus:border-[#3b82f6] transition-all text-white font-bold pr-12">
             <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-[10px] uppercase">Ms</span>
           </div>
         </div>
       </div>
 
-      <!-- Botón Sincronizar -->
       <button @click="saveSettings" 
               class="relative mt-10 w-full overflow-hidden bg-[#3b82f6] text-white font-bold py-4 rounded-xl shadow-lg transition-all duration-300
                      hover:bg-white hover:text-[#0d1117] hover:-translate-y-1 active:scale-[0.95] flex items-center justify-center gap-3 group uppercase text-sm tracking-widest">
@@ -97,71 +95,47 @@ const token = ref('---');
 const form = ref({
   distancia_detectar: 50,
   distancia_detenerse: 10,
-  velocidad_segura: 0.5,
+  velocidad_segura: 50, // Cambiado de 0.5 a 50 (entero)
   tiempo_respuesta: 100
 });
 
-// Al cargar el componente
 onMounted(() => {
-  // Obtenemos los datos del usuario autenticado guardados en el login
   const savedName = localStorage.getItem('userName');
   const savedToken = localStorage.getItem('userToken');
-
   if (!savedToken) {
-    handleLogout(); // Seguridad: si no hay token, fuera.
+    handleLogout();
   } else {
-    equipoNombre.value = savedName || 'Xolo-Bot';
+    equipoNombre.value = savedName || 'auto-Bot';
     token.value = savedToken;
   }
 });
 
 const handleLogout = () => {
-  localStorage.clear(); // Limpia TODO (Token, nombre, rol)
+  localStorage.clear();
   router.push('/');
 };
 
 const saveSettings = async () => {
+  // Verificación extra antes de enviar: asegurar que no hay ceros o negativos
+  if (Object.values(form.value).some(val => val <= 0)) {
+    alert("Todos los campos deben ser mayores a 0");
+    return;
+  }
+
   try {
-    // Sincronizamos con el backend usando la ruta configurada en el servidor Laravel
+    // Enviamos los datos asegurándonos de que sean enteros
     await api.post('/actualizar-parametros', {
       token: token.value,
-      ...form.value
+      distancia_detectar: Math.floor(form.value.distancia_detectar),
+      distancia_detenerse: Math.floor(form.value.distancia_detenerse),
+      velocidad_segura: Math.floor(form.value.velocidad_segura),
+      tiempo_respuesta: Math.floor(form.value.tiempo_respuesta)
     });
     
-    // Si se guarda con éxito, vamos al panel de control
     router.push('/control');
   } catch (error) {
-    alert("Error al sincronizar parámetros. Revisa tu conexión.");
+    console.error("Build Error 500:", error.response?.data);
+    alert("Error del servidor. Asegúrate de que todos los valores sean números enteros positivos.");
   }
 };
 </script>
-
-<style scoped>
-.font-app {
-  font-family: 'Inter', -apple-system, sans-serif !important;
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.8s ease-out;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes shimmer {
-  100% { transform: translateX(100%); }
-}
-
-.group-hover\:animate-shimmer {
-  animation: shimmer 1.5s infinite;
-}
-
-/* Estilo para los inputs de número para ocultar las flechas molestas */
-input::-webkit-outer-spin-button,
-input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-</style>
