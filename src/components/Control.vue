@@ -1,7 +1,7 @@
 <template>
   <div class="fixed inset-0 bg-[#050505] overflow-hidden font-app antialiased text-white flex landscape-layout select-none">
     
-    <!-- BOTONES DE SISTEMA (MÁS PEQUEÑOS Y DISCRETOS) -->
+    <!-- BOTONES DE SISTEMA -->
     <div class="absolute top-4 left-4 right-4 flex justify-between items-start z-50">
       <button @click="regresar" class="btn-system-sm group">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
@@ -27,20 +27,27 @@
       <p class="text-[9px] font-bold tracking-[0.3em] text-slate-500 uppercase">Tracción</p>
     </div>
 
-    <!-- COLUMNA CENTRAL: TELEMETRÍA (ARRIBA) Y ACELERÓMETRO/BOTONES (ABAJO) -->
+    <!-- COLUMNA CENTRAL -->
     <div class="flex-[1.4] flex flex-col p-4 justify-between items-center">
       
-      <!-- Telemetría (Cuadros más pequeños) -->
-      <div class="grid grid-cols-2 gap-2 w-full max-w-xs mt-12">
-        <div v-for="(val, label) in telemetria" :key="label" class="bg-[#161b22]/80 rounded-xl p-2 border border-white/5 text-center">
-          <p class="text-[7px] text-slate-500 uppercase font-black">{{ label }}</p>
-          <p class="text-sm font-mono font-bold leading-none">{{ val }}<span class="text-[7px] ml-0.5 text-blue-500/50">{{ unidades[label] }}</span></p>
+      <!-- Telemetría y Token -->
+      <div class="flex flex-col items-center gap-3 mt-12 w-full max-w-xs">
+        <div class="grid grid-cols-2 gap-2 w-full">
+          <div v-for="(val, label) in telemetria" :key="label" class="bg-[#161b22]/80 rounded-xl p-2 border border-white/5 text-center">
+            <p class="text-[7px] text-slate-500 uppercase font-black">{{ label }}</p>
+            <p class="text-sm font-mono font-bold leading-none">{{ val }}<span class="text-[7px] ml-0.5 text-blue-500/50">{{ unidades[label] }}</span></p>
+          </div>
+        </div>
+        
+        <!-- TOKEN DEL VEHÍCULO (Añadido aquí) -->
+        <div class="flex items-center gap-2 px-3 py-1 bg-blue-500/5 border border-blue-500/10 rounded-full">
+          <span class="text-[8px] font-black text-blue-500/60 uppercase tracking-widest">Unit ID:</span>
+          <span class="text-[9px] font-mono font-bold text-blue-400/90">{{ vehicleToken }}</span>
         </div>
       </div>
 
       <!-- PANEL INFERIOR: ACELERÓMETRO Y FUNCIONES -->
       <div class="w-full flex flex-col items-center gap-4 mb-4">
-        <!-- Botones de Acción (Luces, Sonido, Conexión) -->
         <div class="flex gap-2">
           <button @click="toggleLuces" 
                   :class="lucesOn ? 'bg-white text-black shadow-[0_0_15px_#fff]' : 'bg-[#161b22] text-slate-500 border-white/5'" 
@@ -64,7 +71,6 @@
           </button>
         </div>
 
-        <!-- Acelerómetro Horizontal (Ahora Abajo de los botones) -->
         <div class="w-full max-w-sm bg-[#161b22] p-2 rounded-xl border border-white/5 flex items-center gap-3 shadow-lg">
           <p class="text-[8px] font-black text-blue-500 uppercase tracking-tighter">Throttle</p>
           <input type="range" v-model="velocidad" min="0" max="100" class="flex-1 accent-blue-500 h-1.5 cursor-pointer">
@@ -99,6 +105,7 @@ const apiConnected = ref(false);
 const btConnected = ref(false);
 const lucesOn = ref(false);
 const sonidoActive = ref(false);
+const vehicleToken = ref('XB-0026'); // Token por defecto
 const telemetria = ref({ "Dist": 0, "Stop": 0, "Vel": 0, "Ping": 0 });
 const unidades = { "Dist": "cm", "Stop": "cm", "Vel": "%", "Ping": "ms" };
 
@@ -134,7 +141,11 @@ const toggleWifi = () => apiConnected.value = !apiConnected.value;
 
 const fetchStatus = async () => {
   try {
-    const res = await api.get(`/parametros/${localStorage.getItem('userToken')}`);
+    const token = localStorage.getItem('userToken');
+    // Actualizamos el token visual si existe en el local
+    if(token) vehicleToken.value = token.substring(0, 8).toUpperCase();
+    
+    const res = await api.get(`/parametros/${token}`);
     telemetria.value = { 
       "Dist": res.data.d_detectar || 0, 
       "Stop": res.data.d_frenar || 0, 

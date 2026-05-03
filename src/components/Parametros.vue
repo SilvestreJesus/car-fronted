@@ -13,8 +13,8 @@
 
     <!-- Perfil del Robot -->
     <div class="flex flex-col items-center mb-8 animate-fade-in">
-      <div class="w-24 h-24 bg-[#161b22] rounded-full mb-4 border border-white/10 p-1 shadow-2xl overflow-hidden">
-        <img src="../assets/logo.png" class="w-full h-full object-contain filter brightness-110" alt="Robot Logo">
+      <div class="flex justify-center mb-10">
+        <img src="../assets/logo.png" alt="Logo" class="w-28 h-auto object-contain filter brightness-125" />
       </div>
       <h2 class="text-3xl font-bold tracking-tighter">{{ equipoNombre }}</h2>
       <div class="bg-[#3b82f6]/10 px-4 py-1 rounded-full mt-2 border border-[#3b82f6]/20">
@@ -94,9 +94,9 @@ const token = ref('---');
 
 const form = ref({
   distancia_detectar: 50,
-  distancia_detenerse: 10,
-  velocidad_segura: 50, // Cambiado de 0.5 a 50 (entero)
-  tiempo_respuesta: 100
+  distancia_detenerse: 5,
+  velocidad_segura: 1, // Cambiado de 0.5 a 50 (entero)
+  tiempo_respuesta: 20
 });
 
 onMounted(() => {
