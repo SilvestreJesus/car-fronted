@@ -14,7 +14,7 @@
     <!-- Perfil del Robot -->
     <div class="flex flex-col items-center mb-8 animate-fade-in">
       <div class="w-24 h-24 bg-[#161b22] rounded-full mb-4 border border-white/10 p-1 shadow-2xl overflow-hidden">
-        <img src="/logo-carro.png" class="w-full h-full object-contain filter brightness-110" alt="Robot Logo">
+        <img src="../assets/logo.png" class="w-full h-full object-contain filter brightness-110" alt="Robot Logo">
       </div>
       <h2 class="text-3xl font-bold tracking-tighter">{{ equipoNombre }}</h2>
       <div class="bg-[#3b82f6]/10 px-4 py-1 rounded-full mt-2 border border-[#3b82f6]/20">
