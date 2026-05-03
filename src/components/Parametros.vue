@@ -123,7 +123,7 @@ const handleLogout = () => {
 const saveSettings = async () => {
   try {
     // Sincronizamos con el backend usando la ruta configurada en el servidor Laravel
-    await api.post('/equipos/update-params', {
+    await api.post('/actualizar-parametros', {
       token: token.value,
       ...form.value
     });
