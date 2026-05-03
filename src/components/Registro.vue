@@ -76,8 +76,8 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-// Importamos la configuración que acabamos de crear
 import api from '@/services/api';
+
 const router = useRouter();
 const form = ref({ 
   nombre: '', 
@@ -88,29 +88,41 @@ const form = ref({
 });
 
 const enviarRegistro = async () => {
+  // Validación básica antes de intentar la conexión
+  if (form.value.password.length < 6) {
+    alert("La contraseña debe tener al menos 6 caracteres.");
+    return;
+  }
+
   if (form.value.password !== form.value.confirmPassword) {
-    alert("Las contraseñas deben ser iguales.");
+    alert("Las contraseñas no coinciden.");
     return;
   }
 
   try {
-    // Usamos 'api.post' en lugar de 'axios.post' con la URL larga
+    // Los campos coinciden con el Validator de tu EquipoController
     const res = await api.post('/registrar', {
-      nombre: form.value.nombre,
-      integrantes: form.value.integrantes,
-      email: form.value.email,
-      password: form.value.password
+        nombre: form.value.nombre,
+        integrantes: form.value.integrantes,
+        email: form.value.email,
+        password: form.value.password
     });
     
-    alert("¡Registro exitoso! 🚀\nTu Token es: " + res.data.token);
+    // El backend ahora devuelve 'token'
+    alert("¡Registro exitoso! 🚀\nGuarda tu Token de acceso: " + res.data.token);
+    
+    // Limpiamos y redirigimos
     router.push('/'); 
     
   } catch (error) {
-    // Si el error viene del servidor (ej. el correo ya existe)
-    if (error.response) {
-      alert("Error: " + (error.response.data.message || "No se pudo registrar el equipo"));
+    if (error.response && error.response.status === 422) {
+      // Manejo específico para errores de validación (ej. email duplicado)
+      const errores = error.response.data.errors;
+      let mensaje = "Error de validación:\n";
+      Object.values(errores).forEach(err => mensaje += `- ${err}\n`);
+      alert(mensaje);
     } else {
-      alert("No hay conexión con el servidor de Railway");
+      alert("Error: " + (error.response?.data?.message || "No se pudo conectar con Railway"));
     }
   }
 };
