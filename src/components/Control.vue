@@ -30,7 +30,7 @@
     <!-- Info del Equipo -->
     <div class="text-center mb-8">
       <div class="w-20 h-20 bg-[#161b22] rounded-full mx-auto mb-3 border border-white/10 p-1 flex items-center justify-center">
-        <img src="/logo-carro.png" class="w-14 h-14 object-contain" alt="Logo">
+        <img src="../assets/logo.png" class="w-14 h-14 object-contain" alt="Logo">
       </div>
       <h2 class="text-2xl font-bold tracking-tighter">{{ equipoNombre }}</h2>
       <p class="text-[10px] font-mono text-slate-500 tracking-widest uppercase">{{ token }}</p>
