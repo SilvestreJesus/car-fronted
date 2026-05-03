@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-[#1a1a1a] text-white flex flex-col items-center p-6">
     <div class="w-24 h-24 bg-white rounded-full mb-4 border-2 border-gray-500 overflow-hidden">
-      <img src="/logo-carro.png" class="w-full h-full object-cover">
+      <img src="../assets/logo.png" class="w-full h-full object-cover">
     </div>
     
     <h2 class="text-3xl font-bold text-[#d4e6d4] italic mb-1">{{ equipoNombre }}</h2>
