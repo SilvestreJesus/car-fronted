@@ -7,7 +7,7 @@
       
       <!-- Logo centrado -->
       <div class="flex justify-center mb-10">
-        <img src="/logo-carro.png" alt="Logo" class="w-28 h-auto object-contain filter brightness-125" />
+        <img src="../assets/logo.png" alt="Logo" class="w-28 h-auto object-contain filter brightness-125" />
       </div>
 
       <!-- Títulos -->
