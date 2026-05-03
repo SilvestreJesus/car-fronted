@@ -143,7 +143,7 @@ onUnmounted(() => clearInterval(timer));
 </script>
 
 <style scoped>
-@reference "../styles";
+@reference "../style.css"; 
 /* Animación de botones de control */
 .btn-control {
   @apply bg-[#161b22] border border-white/10 rounded-2xl flex items-center justify-center transition-all duration-75 text-slate-400;
