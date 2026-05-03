@@ -1,3 +1,4 @@
+
 <template>
   <div class="min-h-screen bg-[#050505] bg-[radial-gradient(circle_at_center,_#0a192f_0%,_#050505_100%)] flex flex-col items-center justify-center p-6 font-app antialiased">
     
@@ -76,8 +77,7 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 // Importamos la configuración que acabamos de crear
-import api from '../api'; 
-
+import api from '@/services/api';
 const router = useRouter();
 const form = ref({ 
   nombre: '', 
