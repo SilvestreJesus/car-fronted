@@ -113,7 +113,7 @@ const regresar = () => router.back();
 const logout = () => {
   if(confirm("¿Cerrar sesión?")) {
     localStorage.clear();
-    router.push('/login');
+    router.push('/');
   }
 };
 
