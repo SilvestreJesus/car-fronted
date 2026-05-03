@@ -5,20 +5,20 @@
     <div class="max-w-4xl mx-auto mb-10 flex justify-between items-center">
       <div>
         <h1 class="text-3xl font-bold tracking-tighter">Panel de Control <span class="text-[#3b82f6]">Admin</span></h1>
-        <p class="text-slate-400 text-sm">Gestión global de flota Xolo-Bot</p>
+        <p class="text-slate-400 text-sm">Equipos Registrados</p>
       </div>
-      <button @click="router.push('/')" class="p-2 hover:bg-white/10 rounded-full transition-colors">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+      <button @click="handleLogout" class="p-2 hover:bg-red-500/20 rounded-full transition-colors group">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-slate-400 group-hover:text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
         </svg>
-      </button>
+    </button>
     </div>
 
     <!-- Lista de Equipos -->
     <div class="max-w-4xl mx-auto space-y-4">
-      <div v-for="item in equipos" :key="item.id" 
-           class="bg-[#0d1117] border border-white/5 rounded-3xl overflow-hidden transition-all duration-300 hover:border-[#3b82f6]/50">
-        
+      <div v-for="item in equiposFiltrados" :key="item.id" 
+         class="bg-[#0d1117] border border-white/5 rounded-3xl overflow-hidden transition-all duration-300 hover:border-[#3b82f6]/50">
+         
         <!-- Cabecera de la Tarjeta (Click para expandir) -->
         <div @click="toggleEquipo(item.id)" class="p-6 flex items-center justify-between cursor-pointer active:bg-white/5">
           <div class="flex items-center gap-4">
@@ -81,7 +81,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue'; // Añadimos computed
 import { useRouter } from 'vue-router';
 import api from '@/services/api';
 
@@ -89,14 +89,34 @@ const router = useRouter();
 const equipos = ref([]);
 const expandedId = ref(null);
 
+// 1. Lógica para cerrar sesión
+const handleLogout = () => {
+  // Limpiamos toda la información de la sesión
+  localStorage.removeItem('userToken');
+  localStorage.removeItem('userRole');
+  localStorage.removeItem('userName');
+  
+  // Redirigimos al login
+  router.push('/');
+};
+
+// 2. Cargar todos los equipos desde la API
 const cargarEquipos = async () => {
   try {
     const res = await api.get('/equipos-completo');
     equipos.value = res.data;
   } catch (error) {
     console.error("Error al cargar datos", error);
+    if (error.response?.status === 401) {
+      handleLogout(); // Si el token expiró, cerrar sesión
+    }
   }
 };
+
+// 3. Propiedad computada para filtrar solo los que tienen rol 'usuario'
+const equiposFiltrados = computed(() => {
+  return equipos.value.filter(item => item.role === 'usuario');
+});
 
 const toggleEquipo = (id) => {
   expandedId.value = expandedId.value === id ? null : id;
