@@ -104,7 +104,7 @@ onUnmounted(() => clearInterval(timer));
 </script>
 
 <style scoped>
-@reference "@/style.css";
+@reference "../style.css";
 
 .btn-control {
   @apply bg-[#161b22] border border-white/10 rounded-[2rem] flex items-center justify-center 
