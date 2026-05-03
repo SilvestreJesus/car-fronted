@@ -74,8 +74,9 @@
 
 <script setup>
 import { ref } from 'vue';
-import axios from 'axios';
 import { useRouter } from 'vue-router';
+// Importamos la configuración que acabamos de crear
+import api from '../api'; 
 
 const router = useRouter();
 const form = ref({ 
@@ -93,16 +94,24 @@ const enviarRegistro = async () => {
   }
 
   try {
-    const res = await axios.post('http://127.0.0.1:8000/api/registrar', {
+    // Usamos 'api.post' en lugar de 'axios.post' con la URL larga
+    const res = await api.post('/registrar', {
       nombre: form.value.nombre,
       integrantes: form.value.integrantes,
       email: form.value.email,
       password: form.value.password
     });
-    alert("Registro exitoso. Tu Token de seguridad es: " + res.data.token);
+    
+    alert("¡Registro exitoso! 🚀\nTu Token es: " + res.data.token);
     router.push('/'); 
+    
   } catch (error) {
-    alert("Error al registrar el equipo");
+    // Si el error viene del servidor (ej. el correo ya existe)
+    if (error.response) {
+      alert("Error: " + (error.response.data.message || "No se pudo registrar el equipo"));
+    } else {
+      alert("No hay conexión con el servidor de Railway");
+    }
   }
 };
 </script>
