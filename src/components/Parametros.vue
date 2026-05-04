@@ -80,8 +80,10 @@ import api from '@/services/api';
 const router = useRouter();
 const equipoNombre = ref('Cargando...');
 const token = ref('---');
-const apiConnected = ref(false);
 const btConnected = ref(false);
+
+// 1. DECLARACIÓN ÚNICA DE apiConnected
+const apiConnected = ref(false);
 
 const form = ref({
   distancia_detectar: 50,
@@ -97,31 +99,22 @@ const formConfig = {
   tiempo_respuesta: { label: 'Respuesta', unit: 'Ms' }
 };
 
-
-const apiConnected = ref(false);
-
+// 2. FUNCIÓN DE ESTADO (Usando la lógica de tiempo real)
 const checkStatus = async () => {
   try {
-    // Consultamos los parámetros. Laravel ahora incluye 'last_ping'
     const res = await api.get(`/parametros/${token.value}`);
     
     if (res.data.last_ping) {
-      // Convertimos la fecha de la DB a objeto Date
-      // Importante: Asegúrate que Laravel envíe la fecha en formato ISO
-      const ultimaConexion = new Date(res.data.last_ping);
+      const ultimaVez = new Date(res.data.last_ping);
       const ahora = new Date();
-      
-      // Calculamos la diferencia en segundos
-      const diferenciaSegundos = Math.abs(ahora - ultimaConexion) / 1000;
+      const diferencia = (ahora - ultimaVez) / 1000; // Diferencia en segundos
 
-      // EL BOTÓN SOLO SERÁ AZUL SI EL CARRO SE COMUNICÓ HACE MENOS DE 15 SEGUNDOS
-      // Esto garantiza que el ESP32 está ejecutando su loop de verdad
-      apiConnected.value = diferenciaSegundos < 15;
+      // Solo Online si el ESP32 se reportó hace menos de 15 segundos
+      apiConnected.value = diferencia < 15;
     } else {
       apiConnected.value = false;
     }
-  } catch (error) {
-    console.error("Error validando sincronización:", error);
+  } catch {
     apiConnected.value = false;
   }
 };
