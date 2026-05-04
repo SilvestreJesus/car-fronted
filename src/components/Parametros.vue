@@ -97,10 +97,18 @@ const formConfig = {
   tiempo_respuesta: { label: 'Respuesta', unit: 'Ms' }
 };
 
+// Cambia la función checkStatus en tu Parametros.vue
 const checkStatus = async () => {
   try {
-    await api.get('/status'); // Un endpoint ligero para verificar conexión
-    apiConnected.value = true;
+    // Pedimos los datos del bot a la API usando el token
+    const res = await api.get(`/parametros/${token.value}`);
+    
+    // Si la API responde, verificamos la "ultima_conexion" 
+    // (Esto requiere que tu API devuelva ese campo o simplemente que responda)
+    if(res.status === 200) {
+       apiConnected.value = true; // El servidor respondió
+       // Aquí podrías añadir lógica para ver si el bot está activo realmente
+    }
   } catch {
     apiConnected.value = false;
   }
