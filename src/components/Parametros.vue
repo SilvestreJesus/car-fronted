@@ -102,17 +102,26 @@ const apiConnected = ref(false);
 
 const checkStatus = async () => {
   try {
+    // Consultamos los parámetros. Laravel ahora incluye 'last_ping'
     const res = await api.get(`/parametros/${token.value}`);
     
     if (res.data.last_ping) {
-      const ultimaVez = new Date(res.data.last_ping);
+      // Convertimos la fecha de la DB a objeto Date
+      // Importante: Asegúrate que Laravel envíe la fecha en formato ISO
+      const ultimaConexion = new Date(res.data.last_ping);
       const ahora = new Date();
-      const diferencia = (ahora - ultimaVez) / 1000; // Diferencia en segundos
+      
+      // Calculamos la diferencia en segundos
+      const diferenciaSegundos = Math.abs(ahora - ultimaConexion) / 1000;
 
-      // Si el ESP32 mandó señal hace menos de 10 segundos, mostrar Online
-      apiConnected.value = diferencia < 10;
+      // EL BOTÓN SOLO SERÁ AZUL SI EL CARRO SE COMUNICÓ HACE MENOS DE 15 SEGUNDOS
+      // Esto garantiza que el ESP32 está ejecutando su loop de verdad
+      apiConnected.value = diferenciaSegundos < 15;
+    } else {
+      apiConnected.value = false;
     }
-  } catch {
+  } catch (error) {
+    console.error("Error validando sincronización:", error);
     apiConnected.value = false;
   }
 };
