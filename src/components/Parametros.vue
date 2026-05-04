@@ -1,8 +1,28 @@
 <template>
   <div class="min-h-screen bg-[#050505] bg-[radial-gradient(circle_at_center,_#0a192f_0%,_#050505_100%)] flex flex-col items-center justify-center p-6 font-app antialiased text-white">
     
-    <!-- Botón Cerrar Sesión -->
-    <div class="absolute top-6 right-6">
+    <!-- Barra Superior de Estado y Navegación -->
+    <div class="absolute top-6 left-6 right-6 flex justify-between items-center z-50">
+      <!-- Indicadores de Conexión -->
+      <div class="flex gap-3">
+        <div :class="apiConnected ? 'text-blue-400 border-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.3)]' : 'text-red-500 border-red-500/50'" 
+             class="flex items-center gap-2 border rounded-xl px-3 py-1.5 bg-[#161b22] transition-all duration-500">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"/>
+          </svg>
+          <span class="text-[9px] font-black uppercase tracking-tighter">API {{ apiConnected ? 'Online' : 'Offline' }}</span>
+        </div>
+
+        <button @click="conectarBluetooth" :class="btConnected ? 'text-blue-400 border-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.3)]' : 'text-slate-600 border-white/5'" 
+             class="flex items-center gap-2 border rounded-xl px-3 py-1.5 bg-[#161b22] transition-all">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7l10 10M17 7l-10 10M12 3v18"/>
+          </svg>
+          <span class="text-[9px] font-black uppercase tracking-tighter">BT</span>
+        </button>
+      </div>
+
+      <!-- Cerrar Sesión -->
       <button @click="handleLogout" class="flex items-center gap-2 text-slate-400 hover:text-white transition-colors uppercase text-[10px] font-bold tracking-widest">
         <span>Cerrar Sesión</span>
         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -13,67 +33,36 @@
 
     <!-- Perfil del Robot -->
     <div class="flex flex-col items-center mb-8 animate-fade-in">
-      <div class="flex justify-center mb-10">
-        <img src="../assets/logo.png" alt="Logo" class="w-28 h-auto object-contain filter brightness-125" />
+      <div class="flex justify-center mb-6">
+        <img src="../assets/logo.png" alt="Logo" class="w-24 h-auto filter brightness-125" />
       </div>
       <h2 class="text-3xl font-bold tracking-tighter">{{ equipoNombre }}</h2>
-      <div class="bg-[#3b82f6]/10 px-4 py-1 rounded-full mt-2 border border-[#3b82f6]/20">
-        <p class="text-xs font-mono text-[#3b82f6] uppercase tracking-[0.2em]">Token: {{ token }}</p>
+      <div class="bg-blue-500/10 px-4 py-1 rounded-full mt-2 border border-blue-500/20">
+        <p class="text-xs font-mono text-blue-400 uppercase tracking-[0.2em]">Token: {{ token }}</p>
       </div>
     </div>
 
     <!-- Caja de Parámetros -->
-    <div class="w-full max-w-md bg-[#0d1117] rounded-[2.5rem] p-10 shadow-2xl border border-white/5 relative overflow-hidden">
-      <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#3b82f6] to-transparent opacity-50"></div>
+    <div class="w-full max-w-md bg-[#0d1117] rounded-[2.5rem] p-8 shadow-2xl border border-white/5 relative overflow-hidden">
+      <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-50"></div>
       
-      <h3 class="text-center font-bold text-lg mb-8 uppercase tracking-widest text-slate-400">Configuración Técnica</h3>
+      <h3 class="text-center font-bold text-[10px] mb-8 uppercase tracking-[0.3em] text-slate-500">Configuración Técnica</h3>
       
       <div class="grid grid-cols-2 gap-6">
-        <!-- Detectar (Entero > 0) -->
-        <div class="group">
-          <label class="text-[10px] font-bold text-[#3b82f6] uppercase mb-2 block tracking-wider">Detección</label>
+        <!-- Input fields (Detección, Frenado, etc.) - Mantener igual que tu código -->
+        <div v-for="(val, key) in formConfig" :key="key" class="group">
+          <label class="text-[10px] font-bold text-blue-500 uppercase mb-2 block tracking-wider">{{ val.label }}</label>
           <div class="relative">
-            <input v-model.number="form.distancia_detectar" type="number" min="1"
-                   class="w-full bg-[#161b22] border border-slate-800 rounded-xl py-3 px-4 outline-none focus:border-[#3b82f6] transition-all text-white font-bold pr-12">
-            <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-[10px] uppercase">Cm</span>
-          </div>
-        </div>
-
-        <!-- Detenerse (Entero > 0) -->
-        <div class="group">
-          <label class="text-[10px] font-bold text-[#3b82f6] uppercase mb-2 block tracking-wider">Frenado</label>
-          <div class="relative">
-            <input v-model.number="form.distancia_detenerse" type="number" min="1"
-                   class="w-full bg-[#161b22] border border-slate-800 rounded-xl py-3 px-4 outline-none focus:border-[#3b82f6] transition-all text-white font-bold pr-12">
-            <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-[10px] uppercase">Cm</span>
-          </div>
-        </div>
-
-        <!-- Velocidad (Ahora como entero, ej: 1 a 100) -->
-        <div class="group">
-          <label class="text-[10px] font-bold text-[#3b82f6] uppercase mb-2 block tracking-wider">Velocidad</label>
-          <div class="relative">
-            <input v-model.number="form.velocidad_segura" type="number" min="1"
-                   class="w-full bg-[#161b22] border border-slate-800 rounded-xl py-3 px-4 outline-none focus:border-[#3b82f6] transition-all text-white font-bold pr-12">
-            <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-[10px] uppercase">%</span>
-          </div>
-        </div>
-
-        <!-- Tiempo de Respuesta (Entero > 0) -->
-        <div class="group">
-          <label class="text-[10px] font-bold text-[#3b82f6] uppercase mb-2 block tracking-wider">Respuesta</label>
-          <div class="relative">
-            <input v-model.number="form.tiempo_respuesta" type="number" min="1"
-                   class="w-full bg-[#161b22] border border-slate-800 rounded-xl py-3 px-4 outline-none focus:border-[#3b82f6] transition-all text-white font-bold pr-12">
-            <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-[10px] uppercase">Ms</span>
+            <input v-model.number="form[key]" type="number" min="1"
+                   class="w-full bg-[#161b22] border border-slate-800 rounded-xl py-3 px-4 outline-none focus:border-blue-500 transition-all text-white font-bold pr-12">
+            <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 font-bold text-[10px] uppercase">{{ val.unit }}</span>
           </div>
         </div>
       </div>
 
       <button @click="saveSettings" 
-              class="relative mt-10 w-full overflow-hidden bg-[#3b82f6] text-white font-bold py-4 rounded-xl shadow-lg transition-all duration-300
-                     hover:bg-white hover:text-[#0d1117] hover:-translate-y-1 active:scale-[0.95] flex items-center justify-center gap-3 group uppercase text-sm tracking-widest">
-        <span class="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-shimmer"></span>
+              class="relative mt-10 w-full overflow-hidden bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg transition-all duration-300
+                     hover:bg-white hover:text-black active:scale-[0.95] flex items-center justify-center gap-3 group uppercase text-xs tracking-widest">
         <span>Sincronizar Carro</span>
         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 group-hover:rotate-12 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -84,31 +73,61 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '@/services/api';
 
 const router = useRouter();
 const equipoNombre = ref('Cargando...');
 const token = ref('---');
+const apiConnected = ref(false);
+const btConnected = ref(false);
 
 const form = ref({
   distancia_detectar: 50,
   distancia_detenerse: 5,
-  velocidad_segura: 1, // Cambiado de 0.5 a 50 (entero)
+  velocidad_segura: 80,
   tiempo_respuesta: 20
 });
 
+const formConfig = {
+  distancia_detectar: { label: 'Detección', unit: 'Cm' },
+  distancia_detenerse: { label: 'Frenado', unit: 'Cm' },
+  velocidad_segura: { label: 'Velocidad', unit: '%' },
+  tiempo_respuesta: { label: 'Respuesta', unit: 'Ms' }
+};
+
+const checkStatus = async () => {
+  try {
+    await api.get('/status'); // Un endpoint ligero para verificar conexión
+    apiConnected.value = true;
+  } catch {
+    apiConnected.value = false;
+  }
+};
+
+const conectarBluetooth = async () => {
+  try {
+    await navigator.bluetooth.requestDevice({ acceptAllDevices: true });
+    btConnected.value = true;
+  } catch { btConnected.value = false; }
+};
+
+let timer;
 onMounted(() => {
   const savedName = localStorage.getItem('userName');
   const savedToken = localStorage.getItem('userToken');
   if (!savedToken) {
     handleLogout();
   } else {
-    equipoNombre.value = savedName || 'auto-Bot';
+    equipoNombre.value = savedName || 'Xolo-Bot';
     token.value = savedToken;
   }
+  checkStatus();
+  timer = setInterval(checkStatus, 5000);
 });
+
+onUnmounted(() => clearInterval(timer));
 
 const handleLogout = () => {
   localStorage.clear();
@@ -116,26 +135,19 @@ const handleLogout = () => {
 };
 
 const saveSettings = async () => {
-  // Verificación extra antes de enviar: asegurar que no hay ceros o negativos
   if (Object.values(form.value).some(val => val <= 0)) {
     alert("Todos los campos deben ser mayores a 0");
     return;
   }
 
   try {
-    // Enviamos los datos asegurándonos de que sean enteros
     await api.post('/actualizar-parametros', {
       token: token.value,
-      distancia_detectar: Math.floor(form.value.distancia_detectar),
-      distancia_detenerse: Math.floor(form.value.distancia_detenerse),
-      velocidad_segura: Math.floor(form.value.velocidad_segura),
-      tiempo_respuesta: Math.floor(form.value.tiempo_respuesta)
+      ...form.value
     });
-    
     router.push('/control');
   } catch (error) {
-    console.error("Build Error 500:", error.response?.data);
-    alert("Error del servidor. Asegúrate de que todos los valores sean números enteros positivos.");
+    alert("Error de sincronización con el servidor.");
   }
 };
 </script>
