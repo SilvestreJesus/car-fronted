@@ -97,17 +97,20 @@ const formConfig = {
   tiempo_respuesta: { label: 'Respuesta', unit: 'Ms' }
 };
 
-// Cambia la función checkStatus en tu Parametros.vue
+
+const apiConnected = ref(false);
+
 const checkStatus = async () => {
   try {
-    // Pedimos los datos del bot a la API usando el token
     const res = await api.get(`/parametros/${token.value}`);
     
-    // Si la API responde, verificamos la "ultima_conexion" 
-    // (Esto requiere que tu API devuelva ese campo o simplemente que responda)
-    if(res.status === 200) {
-       apiConnected.value = true; // El servidor respondió
-       // Aquí podrías añadir lógica para ver si el bot está activo realmente
+    if (res.data.last_ping) {
+      const ultimaVez = new Date(res.data.last_ping);
+      const ahora = new Date();
+      const diferencia = (ahora - ultimaVez) / 1000; // Diferencia en segundos
+
+      // Si el ESP32 mandó señal hace menos de 10 segundos, mostrar Online
+      apiConnected.value = diferencia < 10;
     }
   } catch {
     apiConnected.value = false;
