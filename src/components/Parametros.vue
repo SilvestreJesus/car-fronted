@@ -102,29 +102,24 @@ const formConfig = {
 // 2. FUNCIÓN DE ESTADO (Usando la lógica de tiempo real)
 const checkStatus = async () => {
   try {
-    const res = await api.get(`/parametros/${token.value}`);
+    // Usamos una estampa de tiempo para evitar caché del navegador
+    const res = await api.get(`/parametros/${token.value}?t=${Date.now()}`);
     
-    // 1. Verificamos que la API nos mande la fecha de la última conexión del ESP32
     if (res.data && res.data.last_ping) {
+      const ultimaConexion = new Date(res.data.last_ping).getTime();
+      const ahora = new Date().getTime();
       
-      // Convertimos la fecha que viene de la base de datos (Laravel)
-      const ultimaConexion = new Date(res.data.last_ping);
-      const ahora = new Date();
-      
-      // 2. Calculamos la diferencia en segundos
+      // Calculamos la diferencia absoluta en milisegundos y pasamos a segundos
       const diferenciaSegundos = Math.abs(ahora - ultimaConexion) / 1000;
 
-      // 3. LA REGLA DE ORO:
-      // Si el ESP32 no ha saludado al servidor en más de 10 segundos,
-      // lo consideramos "Offline" aunque la API de Railway esté viva.
+      // Si el log te da 1.6s estando desconectado, es un falso positivo.
+      // Vamos a validar que la diferencia sea realmente pequeña.
+      // El ESP32 consulta cada 2s, así que 10s es un margen muy seguro.
       apiConnected.value = diferenciaSegundos < 10;
       
-      console.log(`Diferencia: ${diferenciaSegundos}s. Conectado: ${apiConnected.value}`);
-    } else {
-      apiConnected.value = false;
+      console.log(`Diferencia Real: ${diferenciaSegundos.toFixed(2)}s | Icono: ${apiConnected.value ? 'AZUL' : 'ROJO'}`);
     }
   } catch (error) {
-    // Si la API falla (error 500, 404 o sin internet), icono rojo
     apiConnected.value = false;
   }
 };
