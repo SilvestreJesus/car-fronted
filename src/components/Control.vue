@@ -95,17 +95,23 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '@/services/api';
 
 const router = useRouter();
+
+// Estados de Control
 const velocidad = ref(80);
-const apiConnected = ref(false);
-const btConnected = ref(false);
+const apiConnected = ref(false); // Estado de Railway
+const btConnected = ref(false);  // Estado de Bluetooth
+const characteristic = ref(null);
+const deviceConnected = ref(null);
+
+// UI States
 const lucesOn = ref(false);
 const sonidoActive = ref(false);
-const vehicleToken = ref('XB-0026'); // Token por defecto
+const vehicleToken = ref('XB-0026'); 
 const telemetria = ref({ "Dist": 0, "Stop": 0, "Vel": 0, "Ping": 0 });
 const unidades = { "Dist": "cm", "Stop": "cm", "Vel": "%", "Ping": "ms" };
 
@@ -117,34 +123,73 @@ const logout = () => {
   }
 };
 
-const sendMove = (dir) => {
-  if (navigator.vibrate) navigator.vibrate(30);
-  console.log(`Comando: ${dir} | Potencia: ${velocidad.value}%`);
-};
-
-const toggleLuces = () => {
-  lucesOn.value = !lucesOn.value;
-  if (navigator.vibrate) navigator.vibrate(50);
-};
-
-const playSonido = () => sonidoActive.value = true;
-const stopSonido = () => sonidoActive.value = false;
+// --- LOGICA BLUETOOTH (HANDSHAKE) ---
 
 const conectarBluetooth = async () => {
   try {
-    await navigator.bluetooth.requestDevice({ acceptAllDevices: true });
+    const device = await navigator.bluetooth.requestDevice({
+      filters: [{ namePrefix: 'CARRO_' }],
+      optionalServices: ['00001101-0000-1000-8000-00805f9b34fb']
+    });
+
+    const server = await device.gatt.connect();
+    const service = await server.getPrimaryService('00001101-0000-1000-8000-00805f9b34fb');
+    characteristic.value = await service.getCharacteristic('00001101-0000-1000-8000-00805f9b34fb');
+
+    // 1. Iniciar escucha de telemetría real del ESP32
+    characteristic.value.startNotifications();
+    characteristic.value.addEventListener('characteristicvaluechanged', (event) => {
+      const rawData = new TextDecoder().decode(event.target.value);
+      handleTelemetriaBT(rawData);
+    });
+
+    // 2. ENVIAR HANDSHAKE: Avisar al ESP32 que la web está lista para mover
+    const encoder = new TextEncoder();
+    await characteristic.value.writeValue(encoder.encode("CONNECT\n"));
+
+    deviceConnected.value = device;
     btConnected.value = true;
-  } catch (e) { btConnected.value = false; }
+    if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+  } catch (e) {
+    console.error("Error BT:", e);
+    btConnected.value = false;
+  }
 };
 
-const toggleWifi = () => apiConnected.value = !apiConnected.value;
+const sendMove = async (dir) => {
+  if (navigator.vibrate) navigator.vibrate(30);
+  
+  // Solo envía si hay Bluetooth verificado
+  if (btConnected.value && characteristic.value) {
+    try {
+      const encoder = new TextEncoder();
+      await characteristic.value.writeValue(encoder.encode(dir + "\n"));
+    } catch (error) {
+      console.error("Error de transmisión:", error);
+    }
+  }
+};
+
+// Sincronizar Throttle en tiempo real
+watch(velocidad, (newVal) => {
+  if (btConnected.value) sendMove(`VEL:${newVal}`);
+});
+
+const handleTelemetriaBT = (data) => {
+  if (data.startsWith("DATOS:")) {
+    const partes = data.replace("DATOS:", "").split(",");
+    telemetria.value.Dist = parseInt(partes[0].replace("D", "")) || 0;
+  }
+};
+
+// --- LOGICA RAILWAY (PARAMETROS) ---
 
 const fetchStatus = async () => {
   try {
     const token = localStorage.getItem('userToken');
-    // Actualizamos el token visual si existe en el local
     if(token) vehicleToken.value = token.substring(0, 8).toUpperCase();
     
+    // Si Railway no responde, el sistema se considera "No Sincronizado"
     const res = await api.get(`/parametros/${token}`);
     telemetria.value = { 
       "Dist": res.data.d_detectar || 0, 
@@ -153,11 +198,20 @@ const fetchStatus = async () => {
       "Ping": res.data.t_resp || 0 
     };
     apiConnected.value = true;
-  } catch { apiConnected.value = false; }
+  } catch { 
+    apiConnected.value = false; 
+  }
+};
+
+const toggleLuces = () => {
+  lucesOn.value = !lucesOn.value;
+  sendMove('H'); // H de Headlights para el ESP32
 };
 
 let timer;
-onMounted(() => { timer = setInterval(fetchStatus, 2000); });
+onMounted(() => { 
+  timer = setInterval(fetchStatus, 2000); 
+});
 onUnmounted(() => clearInterval(timer));
 </script>
 
