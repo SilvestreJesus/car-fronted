@@ -88,7 +88,7 @@ const apiConnected = ref(false);
 const form = ref({
   distancia_detectar: 50,
   distancia_detenerse: 5,
-  velocidad_segura: 80,
+  velocidad_segura: 100,
   tiempo_respuesta: 20
 });
 

@@ -17,6 +17,7 @@
     <!-- COLUMNA IZQUIERDA: TRACCIÓN -->
     <div class="flex-1 flex flex-col justify-center items-center gap-4 border-r border-white/5 bg-gradient-to-r from-blue-900/10 to-transparent">
       <div class="flex flex-col gap-4">
+        <!-- Enviamos 'F' para adelante, 'S' para detener -->
         <button @touchstart="sendMove('F')" @touchend="sendMove('S')" class="btn-control w-24 h-24">
           <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 24 24"><path d="M12 8l-6 6h12l-6-6z"/></svg>
         </button>
@@ -30,7 +31,7 @@
     <!-- COLUMNA CENTRAL -->
     <div class="flex-[1.4] flex flex-col p-4 justify-between items-center">
       
-      <!-- Telemetría y Token -->
+      <!-- Telemetría -->
       <div class="flex flex-col items-center gap-3 mt-12 w-full max-w-xs">
         <div class="grid grid-cols-2 gap-2 w-full">
           <div v-for="(val, label) in telemetria" :key="label" class="bg-[#161b22]/80 rounded-xl p-2 border border-white/5 text-center">
@@ -39,14 +40,13 @@
           </div>
         </div>
         
-        <!-- TOKEN DEL VEHÍCULO (Añadido aquí) -->
         <div class="flex items-center gap-2 px-3 py-1 bg-blue-500/5 border border-blue-500/10 rounded-full">
           <span class="text-[8px] font-black text-blue-500/60 uppercase tracking-widest">Unit ID:</span>
           <span class="text-[9px] font-mono font-bold text-blue-400/90">{{ vehicleToken }}</span>
         </div>
       </div>
 
-      <!-- PANEL INFERIOR: ACELERÓMETRO Y FUNCIONES -->
+      <!-- PANEL INFERIOR -->
       <div class="w-full flex flex-col items-center gap-4 mb-4">
         <div class="flex gap-2">
           <button @click="toggleLuces" 
@@ -55,7 +55,7 @@
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
           </button>
           
-          <button @touchstart="playSonido" @touchend="stopSonido" 
+          <button @touchstart="playClaxon" @touchend="stopClaxon" 
                   :class="sonidoActive ? 'bg-white text-black shadow-[0_0_15px_#fff]' : 'bg-[#161b22] text-slate-500 border-white/5'"
                   class="w-10 h-10 rounded-xl flex items-center justify-center border transition-all">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
@@ -82,10 +82,11 @@
     <!-- COLUMNA DERECHA: DIRECCIÓN -->
     <div class="flex-1 flex flex-col justify-center items-center gap-4 border-l border-white/5 bg-gradient-to-l from-blue-900/10 to-transparent">
       <div class="flex gap-4">
-        <button @touchstart="sendMove('L')" @touchend="sendMove('S')" class="btn-control w-24 h-24">
+        <!-- Enviamos 'L' (Left), 'R' (Right) y 'C' (Center) al soltar -->
+        <button @touchstart="sendMove('L')" @touchend="sendMove('C')" class="btn-control w-24 h-24">
           <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 24 24"><path d="M10 18l-6-6 6-6v12z"/></svg>
         </button>
-        <button @touchstart="sendMove('R')" @touchend="sendMove('S')" class="btn-control w-24 h-24">
+        <button @touchstart="sendMove('R')" @touchend="sendMove('C')" class="btn-control w-24 h-24">
           <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 24 24"><path d="M14 18l6-6-6-6v12z"/></svg>
         </button>
       </div>
@@ -105,7 +106,12 @@ const apiConnected = ref(false);
 const btConnected = ref(false);
 const lucesOn = ref(false);
 const sonidoActive = ref(false);
-const vehicleToken = ref('XB-0026'); // Token por defecto
+const vehicleToken = ref('TUR-4193'); 
+
+// Objetos para Bluetooth
+let bluetoothDevice = null;
+let characteristic = null;
+
 const telemetria = ref({ "Dist": 0, "Stop": 0, "Vel": 0, "Ping": 0 });
 const unidades = { "Dist": "cm", "Stop": "cm", "Vel": "%", "Ping": "ms" };
 
@@ -117,33 +123,64 @@ const logout = () => {
   }
 };
 
-const sendMove = (dir) => {
+// --- LÓGICA DE ENVÍO BLUETOOTH ---
+const sendMove = async (dir) => {
   if (navigator.vibrate) navigator.vibrate(30);
-  console.log(`Comando: ${dir} | Potencia: ${velocidad.value}%`);
+  
+  if (characteristic) {
+    try {
+      const encoder = new TextEncoder();
+      await characteristic.writeValue(encoder.encode(dir));
+    } catch (error) {
+      console.error("Error enviando BT:", error);
+    }
+  }
 };
 
-const toggleLuces = () => {
+const toggleLuces = async () => {
   lucesOn.value = !lucesOn.value;
-  if (navigator.vibrate) navigator.vibrate(50);
+  await sendMove('H'); // 'H' de Headlights en el switch de Arduino
 };
 
-const playSonido = () => sonidoActive.value = true;
-const stopSonido = () => sonidoActive.value = false;
+const playClaxon = () => {
+  sonidoActive.value = true;
+  sendMove('P'); // 'P' de Play sound en el switch de Arduino
+};
+const stopClaxon = () => sonidoActive.value = false;
 
+// --- CONEXIÓN BLUETOOTH REAL ---
 const conectarBluetooth = async () => {
   try {
-    await navigator.bluetooth.requestDevice({ acceptAllDevices: true });
+    // Buscamos dispositivos que tengan el servicio Serial (o todos)
+    bluetoothDevice = await navigator.bluetooth.requestDevice({
+      acceptAllDevices: true,
+      optionalServices: ['00001101-0000-1000-8000-00805f9b34fb'] // UUID estándar Serial
+    });
+
+    const server = await bluetoothDevice.gatt.connect();
+    // El ESP32 con BluetoothSerial usa un servicio y característica específicos
+    // Nota: A veces BluetoothSerial se maneja como un dispositivo clásico, 
+    // pero para Web Bluetooth necesitamos que el ESP32 use BLE o un perfil compatible.
+    
     btConnected.value = true;
-  } catch (e) { btConnected.value = false; }
+    
+    bluetoothDevice.addEventListener('gattserverdisconnected', () => {
+      btConnected.value = false;
+      characteristic = null;
+    });
+
+  } catch (e) { 
+    console.error("BT Error:", e);
+    btConnected.value = false; 
+  }
 };
 
 const toggleWifi = () => apiConnected.value = !apiConnected.value;
 
 const fetchStatus = async () => {
   try {
-    const token = localStorage.getItem('userToken');
-    // Actualizamos el token visual si existe en el local
-    if(token) vehicleToken.value = token.substring(0, 8).toUpperCase();
+    const token = localStorage.getItem('userToken') || 'TUR-4193';
+    vehicleToken.value = token;
     
     const res = await api.get(`/parametros/${token}`);
     telemetria.value = { 
@@ -157,42 +194,9 @@ const fetchStatus = async () => {
 };
 
 let timer;
-onMounted(() => { timer = setInterval(fetchStatus, 2000); });
-onUnmounted(() => clearInterval(timer));
+onMounted(() => { timer = setInterval(fetchStatus, 5000); });
+onUnmounted(() => {
+  clearInterval(timer);
+  if (bluetoothDevice) bluetoothDevice.gatt.disconnect();
+});
 </script>
-
-<style scoped>
-@reference "../style.css";
-
-.btn-system-sm {
-  @apply bg-[#161b22]/60 backdrop-blur-sm border border-white/10 px-3 py-1.5 rounded-lg
-         flex items-center gap-2 transition-all active:scale-95;
-}
-
-.btn-control {
-  @apply bg-[#161b22] border border-white/10 rounded-[2.5rem] flex items-center justify-center 
-         transition-all duration-75 text-slate-400 active:scale-90 active:bg-white active:text-black;
-}
-
-.btn-status-sm {
-  @apply w-10 h-10 rounded-xl bg-[#161b22] border flex items-center justify-center transition-all;
-}
-
-@media screen and (orientation: portrait) {
-  .landscape-layout {
-    transform: rotate(90deg);
-    transform-origin: bottom left;
-    position: absolute;
-    top: -100vw;
-    left: 0;
-    height: 100vw;
-    width: 100vh;
-  }
-}
-
-.select-none {
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  user-select: none;
-}
-</style>
