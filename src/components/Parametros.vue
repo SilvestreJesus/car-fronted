@@ -73,99 +73,57 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
-import { useRouter } from 'vue-router';
-import api from '@/services/api';
 
-const router = useRouter();
-const equipoNombre = ref('Cargando...');
-const token = ref('---');
-const btConnected = ref(false);
+import { ref } from 'vue'
 
-// 1. DECLARACIÓN ÚNICA DE apiConnected
-const apiConnected = ref(false);
+import { useRouter } from 'vue-router'
+
+import {
+  connectBluetooth,
+  sendBLE,
+  btConnected
+}
+from '@/services/bluetooth'
+
+const router = useRouter()
 
 const form = ref({
-  distancia_detectar: 50,
-  distancia_detenerse: 5,
+
+  distancia_detectar: 80,
+
+  distancia_detenerse: 30,
+
   velocidad_segura: 100,
+
   tiempo_respuesta: 20
-});
+})
 
-const formConfig = {
-  distancia_detectar: { label: 'Detección', unit: 'Cm' },
-  distancia_detenerse: { label: 'Frenado', unit: 'Cm' },
-  velocidad_segura: { label: 'Velocidad', unit: '%' },
-  tiempo_respuesta: { label: 'Respuesta', unit: 'Ms' }
-};
-
-// 2. FUNCIÓN DE ESTADO (Usando la lógica de tiempo real)
-const checkStatus = async () => {
-  try {
-    // Usamos una estampa de tiempo para evitar caché del navegador
-    const res = await api.get(`/parametros/${token.value}?t=${Date.now()}`);
-    
-    if (res.data && res.data.last_ping) {
-      const ultimaConexion = new Date(res.data.last_ping).getTime();
-      const ahora = new Date().getTime();
-      
-      // Calculamos la diferencia absoluta en milisegundos y pasamos a segundos
-      const diferenciaSegundos = Math.abs(ahora - ultimaConexion) / 1000;
-
-      // Si el log te da 1.6s estando desconectado, es un falso positivo.
-      // Vamos a validar que la diferencia sea realmente pequeña.
-      // El ESP32 consulta cada 2s, así que 10s es un margen muy seguro.
-      apiConnected.value = diferenciaSegundos < 10;
-      
-      console.log(`Diferencia Real: ${diferenciaSegundos.toFixed(2)}s | Icono: ${apiConnected.value ? 'AZUL' : 'ROJO'}`);
-    }
-  } catch (error) {
-    apiConnected.value = false;
-  }
-};
+// ======================================================
+// CONECTAR
+// ======================================================
 
 const conectarBluetooth = async () => {
-  try {
-    await navigator.bluetooth.requestDevice({ acceptAllDevices: true });
-    btConnected.value = true;
-  } catch { btConnected.value = false; }
-};
 
-let timer;
-onMounted(() => {
-  const savedName = localStorage.getItem('userName');
-  const savedToken = localStorage.getItem('userToken');
-  if (!savedToken) {
-    handleLogout();
-  } else {
-    equipoNombre.value = savedName || 'Xolo-Bot';
-    token.value = savedToken;
-  }
-  checkStatus();
-  timer = setInterval(checkStatus, 5000);
-});
+  await connectBluetooth()
+}
 
-onUnmounted(() => clearInterval(timer));
-
-const handleLogout = () => {
-  localStorage.clear();
-  router.push('/');
-};
+// ======================================================
+// ENVIAR CONFIG
+// ======================================================
 
 const saveSettings = async () => {
-  if (Object.values(form.value).some(val => val <= 0)) {
-    alert("Todos los campos deben ser mayores a 0");
-    return;
-  }
 
-  try {
-    await api.post('/actualizar-parametros', {
-      token: token.value,
-      ...form.value
-    });
-    router.push('/control');
-  } catch (error) {
-    alert("Error de sincronización con el servidor.");
-  }
-};
+  const cmd =
+`CONFIG:${form.value.distancia_detectar},
+${form.value.distancia_detenerse},
+${form.value.velocidad_segura},
+${form.value.tiempo_respuesta}`
+
+  await sendBLE(
+    cmd.replace(/\s/g, '')
+  )
+
+  router.push('/control')
+}
+
 </script>

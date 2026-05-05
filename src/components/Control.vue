@@ -95,359 +95,77 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue';
-import { useRouter } from 'vue-router';
-import api from '@/services/api';
 
-const router = useRouter();
+import {
+  sendBLE,
+  telemetry,
+  btConnected
+}
+from '@/services/bluetooth'
 
-// ======================================================
-// VARIABLES BLUETOOTH
-// ======================================================
-const equipoBT = ref('');
-const tokenBT = ref('');
+import { ref, watch } from 'vue'
 
-const btConnected = ref(false);
-const characteristic = ref(null);
-const deviceConnected = ref(null);
+const velocidad = ref(80)
 
-// ======================================================
-// ESTADOS
-// ======================================================
-const velocidad = ref(80);
+const telemetria = telemetry
 
-const apiConnected = ref(false);
+const lucesOn = ref(false)
 
-const lucesOn = ref(false);
-const sonidoActive = ref(false);
-
-const vehicleToken = ref('XB-0026');
-
-const telemetria = ref({
-  "Dist": 0,
-  "Stop": 0,
-  "Vel": 0,
-  "Ping": 0
-});
-
-const unidades = {
-  "Dist": "cm",
-  "Stop": "cm",
-  "Vel": "%",
-  "Ping": "ms"
-};
+const sonidoActive = ref(false)
 
 // ======================================================
-// NAVEGACIÓN
+// MOVIMIENTO
 // ======================================================
-const regresar = () => router.back();
 
-const logout = () => {
-
-  if (confirm("¿Cerrar sesión?")) {
-
-    localStorage.clear();
-
-    router.push('/');
-  }
-};
-
-// ======================================================
-// BLUETOOTH BLE
-// ======================================================
-const conectarBluetooth = async () => {
-
-  try {
-
-    // ==============================================
-    // BUSCAR DISPOSITIVO
-    // ==============================================
-    const device =
-      await navigator.bluetooth.requestDevice({
-
-        filters: [
-          { namePrefix: 'CARRO_' }
-        ],
-
-        optionalServices: [
-          '12345678-1234-1234-1234-123456789abc'
-        ]
-      });
-
-    deviceConnected.value = device;
-
-    // ==============================================
-    // DESCONECTADO
-    // ==============================================
-    device.addEventListener(
-      'gattserverdisconnected',
-      () => {
-
-        btConnected.value = false;
-
-        console.log("Bluetooth desconectado");
-      }
-    );
-
-    // ==============================================
-    // CONECTAR GATT
-    // ==============================================
-    const server = await device.gatt.connect();
-
-    // ==============================================
-    // OBTENER SERVICIO
-    // ==============================================
-    const service =
-      await server.getPrimaryService(
-        '12345678-1234-1234-1234-123456789abc'
-      );
-
-    // ==============================================
-    // OBTENER CHARACTERISTIC
-    // ==============================================
-    characteristic.value =
-      await service.getCharacteristic(
-        'abcd1234-5678-1234-5678-123456789abc'
-      );
-
-    // ==============================================
-    // NOTIFICACIONES
-    // ==============================================
-    await characteristic.value.startNotifications();
-
-    characteristic.value.addEventListener(
-      'characteristicvaluechanged',
-      (event) => {
-
-        const rawData =
-          new TextDecoder()
-            .decode(event.target.value);
-
-        handleTelemetriaBT(rawData);
-      }
-    );
-
-    // ==============================================
-    // HANDSHAKE
-    // ==============================================
-    const encoder = new TextEncoder();
-
-    await characteristic.value.writeValue(
-      encoder.encode("CONNECT\n")
-    );
-
-    btConnected.value = true;
-
-    if (navigator.vibrate) {
-
-      navigator.vibrate([100, 50, 100]);
-    }
-
-  } catch (e) {
-
-    console.error("Error BT:", e);
-
-    btConnected.value = false;
-  }
-};
-
-// ======================================================
-// ENVIAR MOVIMIENTO
-// ======================================================
 const sendMove = async (dir) => {
 
-  if (navigator.vibrate) {
-
-    navigator.vibrate(30);
-  }
-
-  if (
-    btConnected.value &&
-    characteristic.value
-  ) {
-
-    try {
-
-      const encoder = new TextEncoder();
-
-      await characteristic.value.writeValue(
-        encoder.encode(dir + "\n")
-      );
-
-    } catch (error) {
-
-      console.error(
-        "Error de transmisión:",
-        error
-      );
-    }
-  }
-};
+  await sendBLE(dir)
+}
 
 // ======================================================
-// VELOCIDAD TIEMPO REAL
+// VELOCIDAD
 // ======================================================
-watch(velocidad, (newVal) => {
 
-  if (btConnected.value) {
+watch(velocidad, async (v) => {
 
-    sendMove(`VEL:${newVal}`);
-  }
-});
-
-// ======================================================
-// RECIBIR DATOS BT
-// ======================================================
-const handleTelemetriaBT = (data) => {
-
-  console.log("BT:", data);
-
-  // ==============================================
-  // INFO VEHICULO
-  // ==============================================
-  if (data.startsWith("INFO:")) {
-
-    const partes =
-      data.replace("INFO:", "").split(",");
-
-    equipoBT.value = partes[0];
-
-    tokenBT.value = partes[1];
-
-    return;
-  }
-
-  // ==============================================
-  // PARAMETROS
-  // ==============================================
-  if (data.startsWith("PARAMS:")) {
-
-    const partes =
-      data.replace("PARAMS:", "").split(",");
-
-    telemetria.value = {
-
-      "Dist": parseInt(partes[0]) || 0,
-
-      "Stop": parseInt(partes[1]) || 0,
-
-      "Vel": parseInt(partes[2]) || 0,
-
-      "Ping": parseInt(partes[3]) || 0
-    };
-
-    return;
-  }
-
-  // ==============================================
-  // DATOS EXTRA
-  // ==============================================
-  if (data.startsWith("DATOS:")) {
-
-    const partes =
-      data.replace("DATOS:", "").split(",");
-
-    telemetria.value.Dist =
-      parseInt(
-        partes[0].replace("D", "")
-      ) || 0;
-  }
-};
-
-// ======================================================
-// FETCH RAILWAY
-// ======================================================
-const fetchStatus = async () => {
-
-  try {
-
-    const token =
-      localStorage.getItem('userToken');
-
-    if (token) {
-
-      vehicleToken.value =
-        token.substring(0, 8).toUpperCase();
-    }
-
-    const res =
-      await api.get(`/parametros/${token}`);
-
-    telemetria.value = {
-
-      "Dist":
-        res.data.d_detectar || 0,
-
-      "Stop":
-        res.data.d_frenar || 0,
-
-      "Vel":
-        res.data.v_segura || 0,
-
-      "Ping":
-        res.data.t_resp || 0
-    };
-
-    apiConnected.value = true;
-
-  } catch {
-
-    apiConnected.value = false;
-  }
-};
+  await sendBLE(`VEL:${v}`)
+})
 
 // ======================================================
 // LUCES
 // ======================================================
-const toggleLuces = () => {
 
-  lucesOn.value = !lucesOn.value;
+const toggleLuces = async () => {
 
-  sendMove('H');
-};
+  lucesOn.value = !lucesOn.value
+
+  await sendBLE(
+    lucesOn.value
+      ? 'LIGHT:1'
+      : 'LIGHT:0'
+  )
+}
 
 // ======================================================
 // SONIDO
 // ======================================================
-const playSonido = () => {
 
-  sonidoActive.value = true;
+const playSonido = async () => {
 
-  sendMove('P');
-};
+  sonidoActive.value = true
 
-const stopSonido = () => {
+  await sendBLE('SOUND:1')
+}
 
-  sonidoActive.value = false;
+const stopSonido = async () => {
 
-  sendMove('O');
-};
+  sonidoActive.value = false
 
-// ======================================================
-// WIFI
-// ======================================================
-const toggleWifi = () => {
+  await sendBLE('SOUND:0')
+}
 
-  apiConnected.value =
-    !apiConnected.value;
-};
-
-// ======================================================
-// CICLO VIDA
-// ======================================================
-let timer;
-
-onMounted(() => {
-
-  timer =
-    setInterval(fetchStatus, 2000);
-});
-
-onUnmounted(() => {
-
-  clearInterval(timer);
-});
 </script>
+
 
 <style scoped>
 @reference "../style.css";
